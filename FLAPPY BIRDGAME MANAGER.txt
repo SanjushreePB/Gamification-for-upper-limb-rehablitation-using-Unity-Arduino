@@ -1,0 +1,99 @@
+FLAPPY BIRD:GAME MANAGER
+using UnityEngine;
+using System.IO.Ports;
+using System.Collections;
+public class PlayerController : MonoBehaviour
+{
+    CharacterController characterController;
+    SerialPort serialPort;
+    public string portName = "COM11"; // Adjust based on your Arduino's port
+    public int baudRate = 9600;
+    public float speed = 35.0f;
+   // Delay variables
+    public float delayTime = 2.0f; // Adjust the delay time as needed
+    private bool isDelayOver = false;
+    void Start()
+    {
+        characterController = GetComponent<CharacterController>();
+        serialPort = new SerialPort(portName, baudRate);
+        try
+        {
+            serialPort.Open();
+            Debug.Log("Serial port opened successfully");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError("Error opening serial port: " + e.Message);
+        }
+          StartCoroutine(DelayCoroutine());
+    }
+
+
+DISPLAYING THE ARDUINO DATA IN UNITY CONSOLE
+    IEnumerator DelayCoroutine()
+    {
+        yield return new WaitForSeconds(delayTime);
+        isDelayOver = true;
+    }
+    void Update()
+    {
+        if (!isDelayOver)
+            return; 
+       if (serialPort.IsOpen)
+        {
+            try
+            {
+                string sensorData = serialPort.ReadLine();
+                // Parse and use sensorData as needed
+                Debug.Log("Arduino Data: " + sensorData); 
+                UpdatePlayerMovement(sensorData);
+            }
+        }
+GETTING THE DATA FROM SENSOR IN UNITY
+ void UpdatePlayerMovement(string sensorData)
+    {
+       string[] sensorValues = sensorData.Split(',');
+        if (sensorValues.Length == 3)
+        {
+            float gyroX = float.Parse(sensorValues[0]);
+            float gyroY = float.Parse(sensorValues[1]);
+            float gyroZ = float.Parse(sensorValues[2]);
+            float thresholdX = 1.0f;
+            float thresholdZ = 1.0f;           
+ MovePlayerBasedOnGyro(gyroX, gyroZ, thresholdX, thresholdZ);
+        }
+    }
+DIRECTION CONTROL
+    void MovePlayerBasedOnGyro(float gyroX, float gyroZ, float thresholdX, float thresholdZ)
+    {
+        if (gyroX > thresholdX)
+        {
+            MovePlayerForward();
+        }
+        else if (gyroX < -thresholdX)
+        {
+            MovePlayerFall();
+        }
+DIRECTION FUNCTION DEFINITION
+ void MovePlayerForward()
+    {
+        // Adjust the speed based on your requirements
+        float forwardSpeed = speed;
+        Vector3 movement = transform.forward * forwardSpeed * Time.deltaTime;
+        characterController.Move(movement);
+    }
+  GETTING THE UPDATED GYRO VALUE WITHIN THE RANGE
+    float GetUpdatedGyroData()
+    {
+        return Random.Range(-10.0f, 10.0f); 
+    }
+void OnDestroy()
+    {
+                if (serialPort != null && serialPort.IsOpen)
+        {
+            serialPort.Close();
+        }
+    }
+}
+
+
